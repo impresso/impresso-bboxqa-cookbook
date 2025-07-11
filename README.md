@@ -1,29 +1,41 @@
-# Impresso Make-Based Processing Template
+# Impresso Bounding Box Quality Assessment
 
-This repository provides a template for creating new processing pipelines within the Impresso project ecosystem. It demonstrates best practices for building scalable, distributed newspaper processing workflows using Make, Python, and S3 storage.
+This repository provides a processing pipeline for assessing the quality of bounding boxes in digitized newspaper collections within the Impresso project ecosystem. It evaluates OCR-detected text regions and provides quality metrics for layout analysis validation.
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Template Structure](#template-structure)
+- [Features](#features)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Processing a Single Newspaper](#processing-a-single-newspaper)
+- [Quality Assessment Metrics](#quality-assessment-metrics)
 - [Build System](#build-system)
 - [Contributing](#contributing)
 - [About Impresso](#about-impresso)
 
 ## Overview
 
-This template provides a complete framework for building newspaper processing pipelines that:
+This pipeline provides a complete framework for assessing bounding box quality in newspaper digitization that:
 
+- **Evaluates OCR Text Regions**: Analyzes the quality and accuracy of detected text bounding boxes
+- **Provides Quality Metrics**: Generates comprehensive statistics on layout analysis performance
 - **Scale Horizontally**: Process data across multiple machines without conflicts
 - **Handle Large Datasets**: Efficiently process large collections using S3 and local stamp files
 - **Maintain Consistency**: Ensure reproducible results with proper dependency management
 - **Support Parallel Processing**: Utilize multi-core systems and distributed computing
 - **Integrate with S3**: Seamlessly work with both local files and S3 storage
 
-## Template Structure
+## Features
+
+- **Bounding Box Analysis**: Comprehensive evaluation of OCR-detected text regions
+- **Quality Metrics Generation**: Statistical analysis of layout detection accuracy
+- **Multi-format Support**: Works with various digitized newspaper formats
+- **Scalable Processing**: Distributed processing across collections
+- **S3 Integration**: Direct processing from cloud storage
+- **Reproducible Results**: Consistent quality assessment across runs
+
+## File Structure
 
 ```
 ├── README.md                   # This file
@@ -32,20 +44,20 @@ This template provides a complete framework for building newspaper processing pi
 ├── dotenv.sample               # Sample environment configuration
 ├── Pipfile                     # Python dependencies
 ├── lib/
-│   └── cli_TEMPLATE.py         # Template CLI script
+│   └── bboxqa.py               # Bounding box quality assessment script
 ├── cookbook/                   # Build system components
 │   ├── README.md               # Detailed cookbook documentation
-│   ├── setup_TEMPLATE.mk       # Template-specific setup
-│   ├── paths_TEMPLATE.mk       # Path definitions
-│   ├── sync_TEMPLATE.mk        # Data synchronization
-│   ├── processing_TEMPLATE.mk  # Processing targets
+│   ├── setup_bboxqa.mk         # BBoxQA-specific setup
+│   ├── paths_bboxqa.mk         # Path definitions
+│   ├── sync_bboxqa.mk          # Data synchronization
+│   ├── processing_bboxqa.mk    # Processing targets
 │   └── ...                     # Other cookbook components
 └── build.d/                    # Local build directory (auto-created)
 ```
 
 ## Quick Start
 
-Follow these steps to get started with the template:
+Follow these steps to get started with the bounding box quality assessment:
 
 ### 1. Prerequisites
 
@@ -80,8 +92,8 @@ brew install make git git-lfs parallel coreutils python3
 1. **Clone the repository:**
 
    ```bash
-   git clone --recursive <your-template-repo>
-   cd impresso-cookbook-template
+   git clone --recursive git@github.com:impresso/impresso-bboxqa-cookbook.git
+   cd impresso-bboxqa-cookbook
    ```
 
 2. **Configure environment:**
@@ -105,18 +117,6 @@ brew install make git git-lfs parallel coreutils python3
    ```bash
    make setup
    ```
-
-### 3. Adapt the Template to your new Processing Pipeline
-
-There is a special make target that will copy the template files to prepare your new
-processing pipeline.
-You need to decide on the cookbook acronym of your new pipeline. The following command
-will copy all files under cookbook to and replace TEMPLATE with your acronym.
-
-```bash
-export PROCESSING_ACRONYM=myimpressopipeline
-make -f cookbook/template-starter.mk
-```
 
 ### 4. Verify Installation
 
@@ -179,7 +179,7 @@ These can be set in `.env` or passed as command arguments:
 Configure S3 buckets in your paths file:
 
 - `S3_BUCKET_REBUILT`: Input data bucket (default: `22-rebuilt-final`)
-- `S3_BUCKET_TEMPLATE`: Output data bucket (default: `140-processed-data-sandbox`)
+- `S3_BUCKET_BBOXQA`: Output data bucket (default: `140-processed-data-sandbox`)
 
 ## Processing a Single Newspaper
 
@@ -206,6 +206,31 @@ You can also run individual steps:
    ```bash
    make processing-target NEWSPAPER=actionfem
    ```
+
+## Quality Assessment Metrics
+
+The bounding box quality assessment pipeline generates the following metrics:
+
+### Text Region Analysis
+
+- **Coverage Analysis**: Measures how well bounding boxes capture actual text content
+- **Precision Metrics**: Evaluates the accuracy of text region boundaries
+- **Overlap Statistics**: Analyzes overlapping regions and potential segmentation issues
+- **Size Distribution**: Statistical analysis of bounding box dimensions
+
+### Layout Quality Indicators
+
+- **Alignment Assessment**: Checks text line and column alignment consistency
+- **Spacing Analysis**: Evaluates whitespace distribution and text density
+- **Geometric Validation**: Verifies reasonable aspect ratios and positioning
+
+### Output Formats
+
+- **JSON Reports**: Detailed per-page and per-article quality metrics
+- **CSV Summaries**: Aggregate statistics for collection-level analysis
+- **Visualization Data**: Structured data for creating quality assessment charts
+
+The quality assessment results help validate and improve OCR preprocessing pipelines and inform downstream text analysis processes.
 
 ## Build System
 

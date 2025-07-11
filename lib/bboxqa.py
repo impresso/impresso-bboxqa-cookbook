@@ -8,13 +8,12 @@ line coordinates.
 """
 
 import argparse
-import datetime
 import json
 import logging
 import re
 import sys
 import time
-from typing import List, Optional, Iterator, Tuple, Dict, Any
+from typing import List, Optional, Iterator, Dict, Any
 import xml.etree.ElementTree as ET
 
 import requests
@@ -72,9 +71,11 @@ def fetch_all_pages(s3_prefix: str, random: bool = False) -> Iterator[Dict[str, 
 
     for obj_key in objects:
         file_path = f"s3://{bucket}/{obj_key}"
-        with smart_open(file_path, "rb", transport_params=transport_params) as f:
+        with smart_open(
+            file_path, "rb", encoding="utf-8", transport_params=transport_params
+        ) as f:
             for line in f:
-                yield json.loads(line.decode("utf-8"))
+                yield json.loads(line)
 
 
 def fetch_image_dimensions_from_gallica_xml(
