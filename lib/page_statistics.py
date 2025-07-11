@@ -150,6 +150,8 @@ class PageStatisticsProcessor:
         Returns:
             Dict[str, Any]: A dictionary containing computed statistics.
         """
+        page_id = json_data.get("id", "unknown")
+
         # Detect reversed adjacent lines in paragraphs
         para_counter = 0
         for region in json_data["r"]:
@@ -162,10 +164,10 @@ class PageStatisticsProcessor:
                     prev_c = filtered_lines[idx - 1]["c"]
                     curr_c = filtered_lines[idx]["c"]
                     if curr_c[1] + curr_c[3] < prev_c[1]:
-                        log.warning(
-                            "Paragraph %d has reversed line order between lines"
-                            " %d and %d: prev top y=%s, next bottom"
-                            " y=%s",
+                        log.info(
+                            "Page %s: Paragraph %d has reversed line order between"
+                            " lines %d and %d: prev top y=%s, next bottom y=%s",
+                            page_id,
                             para_counter,
                             idx - 1,
                             idx,
@@ -277,21 +279,25 @@ class PageStatisticsProcessor:
                     if bounding_area > 0
                     else 0
                 )
-                if coverage < 80:
-                    log.warning(
-                        "Paragraph %d coverage below 80%%: %s%% at x=%s,"
-                        " y=%s, width=%s, height=%s",
+                if coverage < 70:
+                    log.info(
+                        "Page %s: Paragraph %d coverage below 70%%: %s%% at x=%s,"
+                        " y=%s, width=%s, height=%s: %s",
+                        page_id,
                         para_coverage_counter,
                         coverage,
                         min_x,
                         min_y,
                         max_x - min_x,
                         max_y - min_y,
+                        para.get("l")[0].get("text", "No text available")[:20],
                     )
                 if coverage < 70:
                     line_texts = [line.get("text", "") for line in para["l"]]
                     log.debug(
-                        "Paragraph %d coverage below 70%%, emitting line texts:",
+                        "Page %s: Paragraph %d coverage below 70%%, emitting line"
+                        " texts:",
+                        page_id,
                         para_coverage_counter,
                     )
                     for text in line_texts:

@@ -226,6 +226,7 @@ def check_lines_within_boundaries(
     out_of_bounds_regions = []
     total_lines = 0
     current_pOf = None
+    page_id = page_json.get("id", "unknown")
 
     for region_seq, region in enumerate(page_json.get("r", [])):
         if "pOf" in region:
@@ -235,7 +236,7 @@ def check_lines_within_boundaries(
         if "c" in region and len(region["c"]) >= 4:
             x, y, width, height = region["c"]
             if x < 0 or y < 0 or x + width > image_width or y + height > image_height:
-                log.error(f"Region out of bounds: {region['c']}")
+                log.error(f"Page {page_id}: Region out of bounds: {region['c']}")
                 out_of_bounds_regions.append(
                     {
                         "region_seq": region_seq,
@@ -258,7 +259,9 @@ def check_lines_within_boundaries(
                     or x + width > image_width
                     or y + height > image_height
                 ):
-                    log.error(f"Paragraph out of bounds: {paragraph['c']}")
+                    log.error(
+                        f"Page {page_id}: Paragraph out of bounds: {paragraph['c']}"
+                    )
                     out_of_bounds_paragraphs.append(
                         {
                             "paragraph_seq": paragraph_seq,
@@ -281,7 +284,7 @@ def check_lines_within_boundaries(
                         or x + width > image_width
                         or y + height > image_height
                     ):
-                        log.error(f"Line out of bounds: {line['c']}")
+                        log.error(f"Page {page_id}: Line out of bounds: {line['c']}")
                         out_of_bounds_lines.append(
                             {
                                 "line_seq": line_seq,
