@@ -86,3 +86,4 @@ include cookbook/local_to_s3.mk
 
 
 # FURTHER ADDONS
+include cookbook/aggregators_bboxqa.mk
