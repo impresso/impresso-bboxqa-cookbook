@@ -26,3 +26,4 @@ config.local.mk
 *.dist-info/
 *.whl
 .aws/*
+Pipfile.lock
