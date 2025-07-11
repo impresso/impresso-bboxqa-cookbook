@@ -480,6 +480,7 @@ def main(args: Optional[List[str]] = None) -> None:
     log.info("%s", options)
 
     processor.run()
+    log.info("Finished processing all pages.")
 
 
 if __name__ == "__main__":
