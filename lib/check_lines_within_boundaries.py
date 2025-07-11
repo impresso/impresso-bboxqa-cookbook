@@ -11,9 +11,11 @@ import argparse
 import datetime
 import json
 import logging
+import re
 import sys
 import time
 from typing import List, Optional, Iterator, Tuple, Dict, Any
+import xml.etree.ElementTree as ET
 
 import requests
 import urllib3
@@ -33,6 +35,9 @@ urllib3.disable_warnings()
 load_dotenv()
 
 log = logging.getLogger(__name__)
+
+# Global cache for Gallica pagination XML to avoid repeated requests for the same issue
+_gallica_xml_cache: Dict[str, ET.Element] = {}
 
 
 def fetch_all_pages(s3_prefix: str, random: bool = False) -> Iterator[Dict[str, Any]]:
@@ -72,9 +77,77 @@ def fetch_all_pages(s3_prefix: str, random: bool = False) -> Iterator[Dict[str, 
                 yield json.loads(line.decode("utf-8"))
 
 
+def fetch_image_dimensions_from_gallica_xml(
+    ark_id: str, page_number: str
+) -> tuple[int | None, int | None]:
+    """
+    Fetch image dimensions from Gallica's pagination XML service.
+
+    Args:
+        ark_id (str): The ARK identifier (e.g., 'bpt6k6703122r')
+        page_number (str): The page number (e.g., 'f4' -> '4')
+
+    Returns:
+        tuple[int | None, int | None]: A tuple containing the width and height
+    """
+    global _gallica_xml_cache
+
+    try:
+        # Extract numeric page number from format like 'f4'
+        if page_number.startswith("f"):
+            page_num = page_number[1:]
+        else:
+            page_num = page_number
+
+        # Check if we already have the XML cached for this ARK ID
+        if ark_id in _gallica_xml_cache:
+            root = _gallica_xml_cache[ark_id]
+            log.debug(f"Using cached pagination XML for ARK {ark_id}")
+        else:
+            # Fetch and cache the XML
+            pagination_url = f"https://gallica.bnf.fr/services/Pagination?ark={ark_id}"
+            log.info(f"Fetching pagination XML from {pagination_url}")
+            response = requests.get(pagination_url, verify=False, timeout=10)
+            response.raise_for_status()
+
+            # Parse XML and cache it
+            root = ET.fromstring(response.content)
+            _gallica_xml_cache[ark_id] = root
+            log.info(f"Cached pagination XML for ARK {ark_id}")
+
+        # Find the page with the matching order number
+        for page in root.findall(".//page"):
+            ordre = page.find("ordre")
+            if ordre is not None and ordre.text == page_num:
+                width_elem = page.find("image_width")
+                height_elem = page.find("image_height")
+
+                if (
+                    width_elem is not None
+                    and height_elem is not None
+                    and width_elem.text
+                    and height_elem.text
+                ):
+                    width = int(width_elem.text)
+                    height = int(height_elem.text)
+                    log.debug(f"Found dimensions for page {page_num}: {width}x{height}")
+                    return width, height
+
+        log.warning(f"Page {page_num} not found in pagination XML for {ark_id}")
+        return None, None
+
+    except Exception as e:
+        log.error(
+            f"Failed to fetch dimensions from Gallica XML for {ark_id}, page"
+            f" {page_number}: {e}"
+        )
+        return None, None
+
+
 def fetch_image_dimensions(iiif_base_uri: str) -> tuple[int | None, int | None]:
     """
     Fetch the dimensions (width and height) of an image from its IIIF base URI.
+    For Gallica URIs, uses the pagination XML service for efficiency.
 
     Args:
         iiif_base_uri (str): The IIIF base URI of the image.
@@ -86,14 +159,22 @@ def fetch_image_dimensions(iiif_base_uri: str) -> tuple[int | None, int | None]:
     Raises:
         Exception: If the dimensions cannot be fetched after multiple attempts.
     """
+    # Check if this is a Gallica IIIF URI and extract ARK ID and page
+    gallica_pattern = r"https://gallica\.bnf\.fr/iiif/ark:/12148/([^/]+)/(f\d+)"
+    gallica_match = re.match(gallica_pattern, iiif_base_uri)
+
+    if gallica_match:
+        ark_id = gallica_match.group(1)
+        page_number = gallica_match.group(2)
+        log.debug(
+            f"Detected Gallica URI, using pagination XML for ARK {ark_id}, page"
+            f" {page_number}"
+        )
+        return fetch_image_dimensions_from_gallica_xml(ark_id, page_number)
+
+    # Fallback to original IIIF info.json method for non-Gallica URIs
     iiif_manifest = f"{iiif_base_uri}/info.json"
     attempts = 4
-    gallica_sleep = 0
-    # hack to avoid overload of the gallica iiif server
-    if iiif_base_uri.startswith("https://gallica.bnf.fr/iiif"):
-        gallica_sleep = 6
-    if gallica_sleep:
-        time.sleep(gallica_sleep)
     for attempt in range(attempts + 1):
         try:
             log.debug(
@@ -111,17 +192,15 @@ def fetch_image_dimensions(iiif_base_uri: str) -> tuple[int | None, int | None]:
             return info["width"], info["height"]
         except Exception as e:
             log.error(f"Attempt {attempt + 1} failed for {iiif_manifest}: {e}")
-            if gallica_sleep:
-                time.sleep(gallica_sleep)
-            else:
-                time.sleep(1 + attempt)
+
+            time.sleep(1 + attempt)
             if attempt == attempts:  # On the last attempt, log and exit
                 log.error(
                     f"Failed to fetch image dimensions from {iiif_manifest} after 3"
                     " attempts."
                 )
                 raise e
-    return None
+    return None, None
 
 
 def check_lines_within_boundaries(
