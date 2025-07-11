@@ -43,7 +43,7 @@ help::
 include cookbook/make_settings.mk
 
 # If you need to use a different shell than /bin/dash, overwrite it here.
-SHELL := /bin/dash -x
+# SHELL := /bin/dash 
 
 
 
