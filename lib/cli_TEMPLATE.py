@@ -72,6 +72,7 @@ import argparse
 import json
 import re
 import sys
+from dotenv import load_dotenv
 from smart_open import open as smart_open  # type: ignore
 from typing import List, Optional
 
@@ -83,6 +84,9 @@ from impresso_cookbook import (  # type: ignore
 )
 
 log = logging.getLogger(__name__)
+
+# Needed to load environment variables for S3 credentials
+load_dotenv()
 
 
 def parse_arguments(args: Optional[List[str]] = None) -> argparse.Namespace:
