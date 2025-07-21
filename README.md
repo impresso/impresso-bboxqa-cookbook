@@ -84,8 +84,8 @@ brew install make git git-lfs parallel coreutils python3
 
 - Python 3.11+
 - Make (GNU Make recommended)
-- Git with git-lfs
-- AWS CLI (optional, for direct S3 access)
+- Git
+- jq for aggregations
 
 ### 2. Clone and Setup
 

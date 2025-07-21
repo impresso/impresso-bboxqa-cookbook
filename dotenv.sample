@@ -4,3 +4,5 @@ SE_ACCESS_KEY=<YOUR VALUE>
 SE_SECRET_KEY=<YOUR VALUE>
 # create python venv inside the project
 PIPENV_VENV_IN_PROJECT=enabled
+# best practice is to set the LOGGING_LEVEL here
+LOGGING_LEVEL=DEBUG
