@@ -5,12 +5,10 @@ This repository provides a processing pipeline for assessing the quality of boun
 ## Table of Contents
 
 - [Overview](#overview)
-- [Features](#features)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
-- [Processing a Single Newspaper](#processing-a-single-newspaper)
-- [Quality Assessment Metrics](#quality-assessment-metrics)
 - [Build System](#build-system)
+- [Quality Assessment Metrics](#quality-assessment-metrics)
 - [Contributing](#contributing)
 - [About Impresso](#about-impresso)
 
@@ -23,24 +21,14 @@ This pipeline provides a complete framework for assessing bounding box quality i
 - **Scale Horizontally**: Process data across multiple machines without conflicts
 - **Handle Large Datasets**: Efficiently process large collections using S3 and local stamp files
 - **Maintain Consistency**: Ensure reproducible results with proper dependency management
-- **Support Parallel Processing**: Utilize multi-core systems and distributed computing
 - **Integrate with S3**: Seamlessly work with both local files and S3 storage
-
-## Features
-
-- **Bounding Box Analysis**: Comprehensive evaluation of OCR-detected text regions
-- **Quality Metrics Generation**: Statistical analysis of layout detection accuracy
-- **Multi-format Support**: Works with various digitized newspaper formats
-- **Scalable Processing**: Distributed processing across collections
-- **S3 Integration**: Direct processing from cloud storage
-- **Reproducible Results**: Consistent quality assessment across runs
 
 ## File Structure
 
 ```
 ├── README.md                   # This file
 ├── Makefile                    # Main build configuration
-├── .env                        # Environment variables (create manually from dotenv.sample)
+├── .env                        # Environment variables (to be created manually from dotenv.sample)
 ├── dotenv.sample               # Sample environment configuration
 ├── Pipfile                     # Python dependencies
 ├── lib/
@@ -63,6 +51,11 @@ Follow these steps to get started with the bounding box quality assessment:
 
 Ensure you have the required system dependencies installed:
 
+- Python 3.11+
+- Make (GNU Make recommended)
+- Git
+- jq for aggregations
+
 **Ubuntu/Debian:**
 
 ```bash
@@ -80,13 +73,6 @@ sudo apt-get install -y make git git-lfs parallel coreutils python3 python3-pip
 brew install make git git-lfs parallel coreutils python3
 ```
 
-**System Requirements:**
-
-- Python 3.11+
-- Make (GNU Make recommended)
-- Git
-- jq for aggregations
-
 ### 2. Clone and Setup
 
 1. **Clone the repository:**
@@ -97,10 +83,11 @@ brew install make git git-lfs parallel coreutils python3
    ```
 
 2. **Configure environment:**
+   Before running any processing, configure your environment (see [Configuration](#configuration)):
 
    ```bash
    cp dotenv.sample .env
-   # Edit .env with your S3 credentials (see Configuration section below)
+   # Edit .env with your S3 credentials
    ```
 
 3. **Install Python dependencies:**
@@ -108,25 +95,14 @@ brew install make git git-lfs parallel coreutils python3
    ```bash
    # Using pipenv (recommended)
    pipenv install
-
-   # Or using pip directly
-   python3 -m pip install -r requirements.txt
    ```
 
 4. **Initialize the environment:**
    ```bash
+   pipenv shell
    make setup
    ```
-
-### 4. Verify Installation
-
-Test your setup with a quick help command:
-
-```bash
-make help
-```
-
-You should see available targets and configuration options.
+   The following steps assume that you have activated the pipenv shell.
 
 ### 5. Run a Test
 
@@ -137,58 +113,11 @@ Process a small newspaper to verify everything works:
 make newspaper NEWSPAPER=actionfem
 ```
 
-### 6. Explore Available Commands
-
-Once installation is verified, explore the build system:
+### 6. Process full collection
 
 ```bash
-# Show all available targets
-make
-```
-
-## Configuration
-
-Before running any processing, configure your environment:
-
-### Required Environment Variables
-
-Edit your `.env` file with these required settings:
-
-```bash
-# S3 Configuration (required)
-SE_ACCESS_KEY=your_s3_access_key
-SE_SECRET_KEY=your_s3_secret_key
-SE_HOST_URL=https://os.zhdk.cloud.switch.ch/
-
-# Logging Configuration (optional)
-LOGGING_LEVEL=INFO
-```
-
-### Optional Processing Variables
-
-These can be set in `.env` or passed as command arguments:
-
-- `NEWSPAPER`: Target newspaper to process
-- `BUILD_DIR`: Local build directory (default: `build.d`)
-- `PARALLEL_JOBS`: Number of parallel jobs (auto-detected)
-- `COLLECTION_JOBS`: Number of parallel newspaper collections
-- `NEWSPAPER_YEAR_SORTING`: Processing order (`shuf` for random, `cat` for chronological)
-
-### S3 Bucket Configuration
-
-Configure S3 buckets in your paths file:
-
-- `S3_BUCKET_REBUILT`: Input data bucket (default: `22-rebuilt-final`)
-- `S3_BUCKET_BBOXQA`: Output data bucket (default: `140-processed-data-sandbox`)
-
-## Processing a Single Newspaper
-
-### Basic Processing
-
-Process a single newspaper (all years) with default settings:
-
-```bash
-make newspaper NEWSPAPER=actionfem
+# Run
+make collection
 ```
 
 ### Step-by-Step Processing
@@ -207,30 +136,39 @@ You can also run individual steps:
    make processing-target NEWSPAPER=actionfem
    ```
 
-## Quality Assessment Metrics
+## Configuration
 
-The bounding box quality assessment pipeline generates the following metrics:
+### Important (machine-dependent) Processing Variables
 
-### Text Region Analysis
+These can be set in `.env` or passed as command arguments:
 
-- **Coverage Analysis**: Measures how well bounding boxes capture actual text content
-- **Precision Metrics**: Evaluates the accuracy of text region boundaries
-- **Overlap Statistics**: Analyzes overlapping regions and potential segmentation issues
-- **Size Distribution**: Statistical analysis of bounding box dimensions
+- `NEWSPAPER`: Target newspaper to process
+- `BUILD_DIR`: Local build directory (default: `build.d`)
+- `PARALLEL_JOBS`: Maximum number of parallel years of a newspaper to process.
+- `COLLECTION_JOBS`: Number of newspaper titles to be run in parallel. See
+  cookbook/main_targets.mk for technical details.
+- `NEWSPAPER_YEAR_SORTING`: Processing order of years (`shuf` for random, `cat` for chronological)
 
-### Layout Quality Indicators
+Edit your `.env` file with these required settings:
 
-- **Alignment Assessment**: Checks text line and column alignment consistency
-- **Spacing Analysis**: Evaluates whitespace distribution and text density
-- **Geometric Validation**: Verifies reasonable aspect ratios and positioning
+```bash
+# S3 Configuration (required)
+SE_ACCESS_KEY=your_s3_access_key
+SE_SECRET_KEY=your_s3_secret_key
+SE_HOST_URL=https://os.zhdk.cloud.switch.ch/
 
-### Output Formats
+# Logging Configuration (optional)
+LOGGING_LEVEL=INFO
+```
 
-- **JSON Reports**: Detailed per-page and per-article quality metrics
-- **CSV Summaries**: Aggregate statistics for collection-level analysis
-- **Visualization Data**: Structured data for creating quality assessment charts
+Or provide these variables in your shell environment by other means.
 
-The quality assessment results help validate and improve OCR preprocessing pipelines and inform downstream text analysis processes.
+### S3 Bucket Configuration
+
+Configure S3 buckets in your paths file:
+
+- `S3_BUCKET_REBUILT`: Input data bucket (default: `22-rebuilt-final`)
+- `S3_BUCKET_BBOXQA`: Output data bucket (default: `140-processed-data-sandbox`)
 
 ## Build System
 
@@ -271,6 +209,29 @@ The build system uses:
 
 For detailed build system documentation, see [cookbook/README.md](cookbook/README.md).
 
+## Quality Assessment Metrics
+
+The bounding box quality assessment pipeline generates the following metrics:
+
+### Text Region Analysis
+
+- **Coverage Analysis**: Measures how well bounding boxes capture actual text content
+- **Precision Metrics**: Evaluates the accuracy of text region boundaries
+- **Overlap Statistics**: Analyzes overlapping regions and potential segmentation issues
+- **Size Distribution**: Statistical analysis of bounding box dimensions
+
+### Layout Quality Indicators
+
+- **Alignment Assessment**: Checks text line and column alignment consistency
+- **Spacing Analysis**: Evaluates whitespace distribution and text density
+- **Geometric Validation**: Verifies reasonable aspect ratios and positioning
+
+### Output Aggregations
+
+- **JSON Reports**: Aggregation reports on the full collection
+
+The quality assessment results help validate and improve OCR preprocessing pipelines and inform downstream text analysis processes.
+
 ## Contributing
 
 1. Fork the repository
@@ -292,7 +253,7 @@ The project is funded by:
 
 ### Copyright
 
-Copyright (C) 2024 The Impresso team.
+Copyright (C) 2025 The Impresso team.
 
 ### License
 
